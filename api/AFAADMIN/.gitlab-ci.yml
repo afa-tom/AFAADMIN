@@ -1,0 +1,55 @@
+stages:
+  - build
+  - test
+  - docker
+  - deploy
+
+variables:
+  DOTNET_VERSION: "8.0"
+  IMAGE_NAME: "registry.your-domain.com/afaadmin/api"
+
+# ===== 编译 =====
+build:
+  stage: build
+  image: mcr.microsoft.com/dotnet/sdk:8.0
+  script:
+    - dotnet restore
+    - dotnet build -c Release --no-restore
+  only:
+    - main
+    - release
+    - merge_requests
+
+# ===== 单元测试（M3 阶段补充测试项目后启用） =====
+# test:
+#   stage: test
+#   image: mcr.microsoft.com/dotnet/sdk:8.0
+#   script:
+#     - dotnet test -c Release --no-build --verbosity normal
+#   only:
+#     - main
+#     - release
+
+# ===== Docker 镜像构建 =====
+docker:
+  stage: docker
+  image: docker:24
+  services:
+    - docker:24-dind
+  script:
+    - docker build -t $IMAGE_NAME:$CI_COMMIT_SHORT_SHA .
+    - docker tag $IMAGE_NAME:$CI_COMMIT_SHORT_SHA $IMAGE_NAME:latest
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - docker push $IMAGE_NAME:$CI_COMMIT_SHORT_SHA
+    - docker push $IMAGE_NAME:latest
+  only:
+    - main
+    - release
+
+# ===== 部署（M6 阶段完善） =====
+# deploy:
+#   stage: deploy
+#   script:
+#     - echo "Deploy to ACK..."
+#   only:
+#     - release
