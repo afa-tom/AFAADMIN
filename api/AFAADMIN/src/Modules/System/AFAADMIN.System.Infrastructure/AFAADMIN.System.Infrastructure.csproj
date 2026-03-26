@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>AFAADMIN.System.Infrastructure</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\AFAADMIN.System.Domain\AFAADMIN.System.Domain.csproj" />
+    <ProjectReference Include="..\AFAADMIN.System.Application\AFAADMIN.System.Application.csproj" />
+    <ProjectReference Include="..\..\..\Framework\AFAADMIN.Database\AFAADMIN.Database.csproj" />
+  </ItemGroup>
+</Project>
