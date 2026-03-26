@@ -1,3 +1,4 @@
+using AFAADMIN.Database;
 using AFAADMIN.Web.Core.Extensions;
 using AFAADMIN.Web.Core.Filters;
 using Serilog;
@@ -52,8 +53,23 @@ builder.Services.AddCors(options =>
 // 2.5 健康检查
 builder.Services.AddHealthChecks();
 
+// 2.6 数据库（M2 新增）
+builder.Services.AddAfaDatabase(builder.Configuration);
+
+// 2.7 安全配置（M2 新增）
+builder.Services.AddAfaSecurity(builder.Configuration);
+
+// 2.8 防抖限流（M2 新增）
+builder.Services.AddAfaRateLimiting(builder.Configuration);
+
 // ========== 3. 构建并配置中间件管道 ==========
 var app = builder.Build();
+
+// 3.0 数据库初始化（开发环境自动建表）
+if (app.Environment.IsDevelopment())
+{
+    app.Services.InitDatabase(createTable: true);
+}
 
 // 3.1 开发环境启用 Swagger
 if (app.Environment.IsDevelopment())
@@ -73,11 +89,17 @@ app.UseRouting();
 // 3.3 请求日志
 app.UseSerilogRequestLogging();
 
-// 3.4 认证 & 授权（M3 阶段启用）
+// 3.4 API 报文加解密中间件（M2 新增）
+app.UseAfaEncryption();
+
+// 3.5 防抖限流（M2 新增）
+app.UseAfaRateLimiting(builder.Configuration);
+
+// 3.6 认证 & 授权（M3 阶段启用）
 // app.UseAuthentication();
 // app.UseAuthorization();
 
-// 3.5 路由映射
+// 3.7 路由映射
 app.MapControllers();
 app.MapHealthChecks("/health");
 

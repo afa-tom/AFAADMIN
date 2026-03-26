@@ -1,0 +1,23 @@
+{
+  "Security": {
+    "Jwt": {
+      "Issuer": "AFAADMIN",
+      "Audience": "AFAADMIN-Client",
+      "SecretKey": "AfaAdmin2024SecureKeyForJwtToken!!",
+      "AccessTokenExpireMinutes": 120,
+      "RefreshTokenExpireDays": 7
+    },
+    "Encryption": {
+      "EnableGlobalEncryption": false,
+      "SM4Key": "0123456789abcdef0123456789abcdef",
+      "SM3Salt": "AfaAdminDefaultSalt2024"
+    },
+    "RateLimiting": {
+      "EnableRateLimiting": true,
+      "PermitLimit": 100,
+      "WindowSeconds": 60,
+      "LoginPermitLimit": 5,
+      "LoginWindowSeconds": 60
+    }
+  }
+}

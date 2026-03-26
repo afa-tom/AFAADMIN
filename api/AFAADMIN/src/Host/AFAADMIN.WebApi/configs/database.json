@@ -1,8 +1,0 @@
-{
-  "Database": {
-    "DbType": "MySql",
-    "ConnectionString": "Server=localhost;Port=3306;Database=afaadmin;Uid=root;Pwd=your_password;CharSet=utf8mb4;",
-    "EnableSqlLog": true,
-    "EnableAudit": true
-  }
-}
