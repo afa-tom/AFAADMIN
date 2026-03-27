@@ -1,9 +1,24 @@
+using Microsoft.Extensions.DependencyInjection;
+
 namespace AFAADMIN.EventBus;
 
-/// <summary>
-/// 事件总线（M4 阶段实现 MediatR 封装）
-/// </summary>
 public static class EventBusServiceCollectionExtensions
 {
-    // M4 阶段实现
+    /// <summary>
+    /// 注册 MediatR 事件总线（自动扫描所有 AFAADMIN 程序集中的 Handler）
+    /// </summary>
+    public static IServiceCollection AddAfaEventBus(this IServiceCollection services)
+    {
+        // 扫描所有 AFAADMIN.* 程序集
+        var assemblies = AppDomain.CurrentDomain.GetAssemblies()
+            .Where(a => a.FullName != null && a.FullName.StartsWith("AFAADMIN"))
+            .ToArray();
+
+        services.AddMediatR(cfg =>
+        {
+            cfg.RegisterServicesFromAssemblies(assemblies);
+        });
+
+        return services;
+    }
 }

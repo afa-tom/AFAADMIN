@@ -6,6 +6,11 @@
     <RootNamespace>AFAADMIN.Tools</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="SixLabors.ImageSharp" Version="3.1.6" />
+    <PackageReference Include="QRCoder" Version="1.6.0" />
+    <PackageReference Include="Lazy.Captcha.Core" Version="1.1.7" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\AFAADMIN.Common\AFAADMIN.Common.csproj" />
   </ItemGroup>
 </Project>

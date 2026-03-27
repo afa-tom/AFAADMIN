@@ -15,5 +15,6 @@
     <ProjectReference Include="..\..\..\Framework\AFAADMIN.Database\AFAADMIN.Database.csproj" />
     <ProjectReference Include="..\..\..\Framework\AFAADMIN.Common\AFAADMIN.Common.csproj" />
     <ProjectReference Include="..\..\..\Framework\AFAADMIN.Web.Core\AFAADMIN.Web.Core.csproj" />
+    <ProjectReference Include="..\..\..\Framework\AFAADMIN.EventBus\AFAADMIN.EventBus.csproj" />
   </ItemGroup>
 </Project>

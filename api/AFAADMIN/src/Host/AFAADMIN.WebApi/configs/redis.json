@@ -1,7 +1,8 @@
 {
   "Redis": {
-    "ConnectionString": "localhost:6379,password=,defaultDatabase=0",
+    "ConnectionString": "localhost:6379,abortConnect=false,connectTimeout=5000",
     "InstanceName": "AFAADMIN:",
-    "EnableDistributedCache": true
+    "EnableDistributedCache": true,
+    "DefaultExpirationMinutes": 30
   }
 }

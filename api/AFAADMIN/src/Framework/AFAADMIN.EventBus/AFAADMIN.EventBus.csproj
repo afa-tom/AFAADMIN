@@ -6,6 +6,9 @@
     <RootNamespace>AFAADMIN.EventBus</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="MediatR" Version="12.4.1" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\AFAADMIN.Common\AFAADMIN.Common.csproj" />
   </ItemGroup>
 </Project>

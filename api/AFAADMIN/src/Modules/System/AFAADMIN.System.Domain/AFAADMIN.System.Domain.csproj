@@ -6,6 +6,9 @@
     <RootNamespace>AFAADMIN.System.Domain</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="MediatR.Contracts" Version="2.0.1" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\..\..\Framework\AFAADMIN.Common\AFAADMIN.Common.csproj" />
     <ProjectReference Include="..\..\..\Framework\AFAADMIN.Database\AFAADMIN.Database.csproj" />
   </ItemGroup>

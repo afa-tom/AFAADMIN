@@ -1,8 +1,10 @@
 using AFAADMIN.Common.DependencyInjection;
 using AFAADMIN.Common.Exceptions;
 using AFAADMIN.Database.Repositories;
+using AFAADMIN.EventBus;
 using AFAADMIN.System.Application.Dtos;
 using AFAADMIN.System.Domain.Entities;
+using AFAADMIN.System.Domain.Events;
 using Mapster;
 using SqlSugar;
 
@@ -12,11 +14,14 @@ public class RoleService : IRoleService, IScopedDependency
 {
     private readonly IBaseRepository<SysRole> _roleRepo;
     private readonly ISqlSugarClient _db;
+    private readonly IEventPublisher _eventPublisher;
 
-    public RoleService(IBaseRepository<SysRole> roleRepo, ISqlSugarClient db)
+    public RoleService(IBaseRepository<SysRole> roleRepo, ISqlSugarClient db,
+        IEventPublisher eventPublisher)
     {
         _roleRepo = roleRepo;
         _db = db;
+        _eventPublisher = eventPublisher;
     }
 
     public async Task<List<RoleDto>> GetListAsync()
@@ -24,16 +29,13 @@ public class RoleService : IRoleService, IScopedDependency
         var roles = await _roleRepo.GetListAsync();
         var dtos = roles.Adapt<List<RoleDto>>();
 
-        // 查询每个角色的菜单 ID
         var roleIds = dtos.Select(r => r.Id).ToList();
         var roleMenus = await _db.Queryable<SysRoleMenu>()
             .Where(rm => roleIds.Contains(rm.RoleId))
             .ToListAsync();
 
         foreach (var dto in dtos)
-        {
             dto.MenuIds = roleMenus.Where(rm => rm.RoleId == dto.Id).Select(rm => rm.MenuId).ToList();
-        }
 
         return dtos.OrderBy(r => r.Sort).ToList();
     }
@@ -84,7 +86,6 @@ public class RoleService : IRoleService, IScopedDependency
 
         var result = await _roleRepo.UpdateAsync(role);
 
-        // 更新菜单
         await _db.Deleteable<SysRoleMenu>().Where(rm => rm.RoleId == dto.Id).ExecuteCommandAsync();
         if (dto.MenuIds.Count > 0)
         {
@@ -92,12 +93,14 @@ public class RoleService : IRoleService, IScopedDependency
             await _db.Insertable(roleMenus).ExecuteCommandAsync();
         }
 
+        // 发布角色权限变更事件
+        await _eventPublisher.PublishAsync(new RolePermissionChangedEvent { RoleId = dto.Id });
+
         return result;
     }
 
     public async Task<bool> DeleteAsync(long id)
     {
-        // 检查是否有用户关联
         var hasUser = await _db.Queryable<SysUserRole>().AnyAsync(ur => ur.RoleId == id);
         if (hasUser) throw new BusinessException("该角色下还有用户，无法删除");
 
@@ -111,6 +114,11 @@ public class RoleService : IRoleService, IScopedDependency
         if (menuIds.Count == 0) return true;
 
         var roleMenus = menuIds.Select(mid => new SysRoleMenu { RoleId = roleId, MenuId = mid }).ToList();
-        return await _db.Insertable(roleMenus).ExecuteCommandAsync() > 0;
+        var result = await _db.Insertable(roleMenus).ExecuteCommandAsync() > 0;
+
+        // 发布角色权限变更事件
+        await _eventPublisher.PublishAsync(new RolePermissionChangedEvent { RoleId = roleId });
+
+        return result;
     }
 }

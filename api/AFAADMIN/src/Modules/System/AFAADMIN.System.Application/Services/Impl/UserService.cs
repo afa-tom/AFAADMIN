@@ -4,8 +4,10 @@ using AFAADMIN.Common.Exceptions;
 using AFAADMIN.Common.Models;
 using AFAADMIN.Database.Encryption;
 using AFAADMIN.Database.Repositories;
+using AFAADMIN.EventBus;
 using AFAADMIN.System.Application.Dtos;
 using AFAADMIN.System.Domain.Entities;
+using AFAADMIN.System.Domain.Events;
 using Mapster;
 using SqlSugar;
 
@@ -16,13 +18,15 @@ public class UserService : IUserService, IScopedDependency
     private readonly IBaseRepository<SysUser> _userRepo;
     private readonly ISqlSugarClient _db;
     private readonly SensitiveFieldEncryptor _encryptor;
+    private readonly IEventPublisher _eventPublisher;
 
     public UserService(IBaseRepository<SysUser> userRepo, ISqlSugarClient db,
-        SensitiveFieldEncryptor encryptor)
+        SensitiveFieldEncryptor encryptor, IEventPublisher eventPublisher)
     {
         _userRepo = userRepo;
         _db = db;
         _encryptor = encryptor;
+        _eventPublisher = eventPublisher;
     }
 
     public async Task<PageResult<UserDto>> GetPageAsync(UserQueryDto query)
@@ -53,21 +57,15 @@ public class UserService : IUserService, IScopedDependency
             })
             .ToPageListAsync(page.PageIndex, page.PageSize, totalCount);
 
-        // 解密敏感字段
         foreach (var item in items)
-        {
             item.Phone = TryDecrypt(item.Phone);
-        }
 
-        // 查询角色
         var userIds = items.Select(x => x.Id).ToList();
         var userRoles = await _db.Queryable<SysUserRole>()
             .Where(ur => userIds.Contains(ur.UserId))
             .ToListAsync();
         foreach (var item in items)
-        {
             item.RoleIds = userRoles.Where(ur => ur.UserId == item.Id).Select(ur => ur.RoleId).ToList();
-        }
 
         return new PageResult<UserDto>
         {
@@ -86,13 +84,11 @@ public class UserService : IUserService, IScopedDependency
         _encryptor.Decrypt(user);
         var dto = user.Adapt<UserDto>();
 
-        // 查询角色
         dto.RoleIds = await _db.Queryable<SysUserRole>()
             .Where(ur => ur.UserId == id)
             .Select(ur => ur.RoleId)
             .ToListAsync();
 
-        // 查询部门名
         if (user.DeptId.HasValue)
         {
             var dept = await _db.Queryable<SysDept>().InSingleAsync(user.DeptId.Value);
@@ -115,12 +111,17 @@ public class UserService : IUserService, IScopedDependency
 
         var id = await _userRepo.InsertReturnIdAsync(user);
 
-        // 分配角色
         if (dto.RoleIds.Count > 0)
         {
             var userRoles = dto.RoleIds.Select(rid => new SysUserRole { UserId = id, RoleId = rid }).ToList();
             await _db.Insertable(userRoles).ExecuteCommandAsync();
         }
+
+        // 发布用户创建事件
+        await _eventPublisher.PublishAsync(new UserCreatedEvent
+        {
+            UserId = id, UserName = dto.UserName
+        });
 
         return id;
     }
@@ -140,7 +141,6 @@ public class UserService : IUserService, IScopedDependency
         _encryptor.Encrypt(user);
         var result = await _userRepo.UpdateAsync(user);
 
-        // 更新角色
         await _db.Deleteable<SysUserRole>().Where(ur => ur.UserId == dto.Id).ExecuteCommandAsync();
         if (dto.RoleIds.Count > 0)
         {
@@ -148,12 +148,14 @@ public class UserService : IUserService, IScopedDependency
             await _db.Insertable(userRoles).ExecuteCommandAsync();
         }
 
+        // 发布角色变更事件
+        await _eventPublisher.PublishAsync(new UserRoleChangedEvent { UserId = dto.Id });
+
         return result;
     }
 
     public async Task<bool> DeleteAsync(long id)
     {
-        // 同时删除角色关联
         await _db.Deleteable<SysUserRole>().Where(ur => ur.UserId == id).ExecuteCommandAsync();
         return await _userRepo.SoftDeleteAsync(id);
     }
@@ -176,7 +178,11 @@ public class UserService : IUserService, IScopedDependency
         if (roleIds.Count == 0) return true;
 
         var userRoles = roleIds.Select(rid => new SysUserRole { UserId = userId, RoleId = rid }).ToList();
-        return await _db.Insertable(userRoles).ExecuteCommandAsync() > 0;
+        var result = await _db.Insertable(userRoles).ExecuteCommandAsync() > 0;
+
+        await _eventPublisher.PublishAsync(new UserRoleChangedEvent { UserId = userId });
+
+        return result;
     }
 
     private string? TryDecrypt(string? value)
@@ -184,7 +190,6 @@ public class UserService : IUserService, IScopedDependency
         if (string.IsNullOrEmpty(value)) return value;
         try
         {
-            // 尝试解密，若失败返回原值（可能未加密的旧数据）
             var dummy = new SysUser { Phone = value };
             _encryptor.Decrypt(dummy);
             return dummy.Phone;

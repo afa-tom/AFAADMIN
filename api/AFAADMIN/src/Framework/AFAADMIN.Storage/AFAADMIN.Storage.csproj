@@ -6,6 +6,9 @@
     <RootNamespace>AFAADMIN.Storage</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="Minio" Version="6.0.3" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\AFAADMIN.Common\AFAADMIN.Common.csproj" />
   </ItemGroup>
 </Project>

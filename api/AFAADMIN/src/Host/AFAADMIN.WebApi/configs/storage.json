@@ -1,0 +1,14 @@
+{
+  "Storage": {
+    "Provider": "Local",
+    "LocalBasePath": "uploads",
+    "LocalUrlPrefix": "/files",
+    "Minio": {
+      "Endpoint": "localhost:9000",
+      "AccessKey": "minioadmin",
+      "SecretKey": "minioadmin",
+      "BucketName": "afaadmin",
+      "UseSSL": false
+    }
+  }
+}

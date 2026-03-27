@@ -13,6 +13,9 @@
     <ProjectReference Include="..\..\Framework\AFAADMIN.Web.Core\AFAADMIN.Web.Core.csproj" />
     <ProjectReference Include="..\..\Framework\AFAADMIN.Database\AFAADMIN.Database.csproj" />
     <ProjectReference Include="..\..\Framework\AFAADMIN.Common\AFAADMIN.Common.csproj" />
+    <ProjectReference Include="..\..\Framework\AFAADMIN.Storage\AFAADMIN.Storage.csproj" />
+    <ProjectReference Include="..\..\Framework\AFAADMIN.EventBus\AFAADMIN.EventBus.csproj" />
+    <ProjectReference Include="..\..\Framework\AFAADMIN.Tools\AFAADMIN.Tools.csproj" />
     <ProjectReference Include="..\..\Modules\System\AFAADMIN.System.Application\AFAADMIN.System.Application.csproj" />
     <ProjectReference Include="..\..\Modules\System\AFAADMIN.System.Infrastructure\AFAADMIN.System.Infrastructure.csproj" />
   </ItemGroup>

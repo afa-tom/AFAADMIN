@@ -1,8 +1,11 @@
+using AFAADMIN.Common.Cache;
 using AFAADMIN.Common.DependencyInjection;
 using AFAADMIN.Common.Exceptions;
 using AFAADMIN.Database.Repositories;
+using AFAADMIN.EventBus;
 using AFAADMIN.System.Application.Dtos;
 using AFAADMIN.System.Domain.Entities;
+using AFAADMIN.System.Domain.Events;
 using Mapster;
 using SqlSugar;
 
@@ -13,16 +16,19 @@ public class DictService : IDictService, IScopedDependency
     private readonly IBaseRepository<SysDictType> _typeRepo;
     private readonly IBaseRepository<SysDictData> _dataRepo;
     private readonly ISqlSugarClient _db;
+    private readonly ICacheService _cache;
+    private readonly IEventPublisher _eventPublisher;
 
     public DictService(IBaseRepository<SysDictType> typeRepo,
-        IBaseRepository<SysDictData> dataRepo, ISqlSugarClient db)
+        IBaseRepository<SysDictData> dataRepo, ISqlSugarClient db,
+        ICacheService cache, IEventPublisher eventPublisher)
     {
         _typeRepo = typeRepo;
         _dataRepo = dataRepo;
         _db = db;
+        _cache = cache;
+        _eventPublisher = eventPublisher;
     }
-
-    // ===== 字典类型 =====
 
     public async Task<List<DictTypeDto>> GetTypeListAsync()
     {
@@ -44,21 +50,32 @@ public class DictService : IDictService, IScopedDependency
         var entity = await _typeRepo.GetByIdAsync(dto.Id);
         if (entity == null) throw new BusinessException("字典类型不存在");
 
+        var oldCode = entity.DictCode;
         if (await _typeRepo.AnyAsync(t => t.DictCode == dto.DictCode && t.Id != dto.Id))
             throw new BusinessException("字典编码已存在");
 
         dto.Adapt(entity);
-        return await _typeRepo.UpdateAsync(entity);
+        var result = await _typeRepo.UpdateAsync(entity);
+
+        // 清除缓存
+        await _eventPublisher.PublishAsync(new DictDataChangedEvent { DictCode = oldCode });
+        if (oldCode != dto.DictCode)
+            await _eventPublisher.PublishAsync(new DictDataChangedEvent { DictCode = dto.DictCode });
+
+        return result;
     }
 
     public async Task<bool> DeleteTypeAsync(long id)
     {
-        // 级联删除字典数据
+        var entity = await _typeRepo.GetByIdAsync(id);
         await _dataRepo.DeleteAsync(d => d.DictTypeId == id);
-        return await _typeRepo.SoftDeleteAsync(id);
-    }
+        var result = await _typeRepo.SoftDeleteAsync(id);
 
-    // ===== 字典数据 =====
+        if (entity != null)
+            await _eventPublisher.PublishAsync(new DictDataChangedEvent { DictCode = entity.DictCode });
+
+        return result;
+    }
 
     public async Task<List<DictDataDto>> GetDataListByTypeIdAsync(long dictTypeId)
     {
@@ -68,6 +85,10 @@ public class DictService : IDictService, IScopedDependency
 
     public async Task<List<DictDataDto>> GetDataListByCodeAsync(string dictCode)
     {
+        // 带缓存
+        var cached = await _cache.GetAsync<List<DictDataDto>>(CacheKeys.DictData(dictCode));
+        if (cached != null) return cached;
+
         var items = await _db.Queryable<SysDictData>()
             .LeftJoin<SysDictType>((d, t) => d.DictTypeId == t.Id)
             .Where((d, t) => t.DictCode == dictCode && d.IsDeleted == false && t.IsDeleted == false)
@@ -75,13 +96,22 @@ public class DictService : IDictService, IScopedDependency
             .Select((d, t) => d)
             .ToListAsync();
 
-        return items.Adapt<List<DictDataDto>>();
+        var result = items.Adapt<List<DictDataDto>>();
+        await _cache.SetAsync(CacheKeys.DictData(dictCode), result, TimeSpan.FromHours(2));
+        return result;
     }
 
     public async Task<long> CreateDataAsync(CreateDictDataDto dto)
     {
         var entity = dto.Adapt<SysDictData>();
-        return await _dataRepo.InsertReturnIdAsync(entity);
+        var id = await _dataRepo.InsertReturnIdAsync(entity);
+
+        // 清除关联字典类型的缓存
+        var dictType = await _typeRepo.GetByIdAsync(dto.DictTypeId);
+        if (dictType != null)
+            await _eventPublisher.PublishAsync(new DictDataChangedEvent { DictCode = dictType.DictCode });
+
+        return id;
     }
 
     public async Task<bool> UpdateDataAsync(UpdateDictDataDto dto)
@@ -90,11 +120,27 @@ public class DictService : IDictService, IScopedDependency
         if (entity == null) throw new BusinessException("字典数据不存在");
 
         dto.Adapt(entity);
-        return await _dataRepo.UpdateAsync(entity);
+        var result = await _dataRepo.UpdateAsync(entity);
+
+        var dictType = await _typeRepo.GetByIdAsync(dto.DictTypeId);
+        if (dictType != null)
+            await _eventPublisher.PublishAsync(new DictDataChangedEvent { DictCode = dictType.DictCode });
+
+        return result;
     }
 
     public async Task<bool> DeleteDataAsync(long id)
     {
-        return await _dataRepo.SoftDeleteAsync(id);
+        var entity = await _dataRepo.GetByIdAsync(id);
+        var result = await _dataRepo.SoftDeleteAsync(id);
+
+        if (entity != null)
+        {
+            var dictType = await _typeRepo.GetByIdAsync(entity.DictTypeId);
+            if (dictType != null)
+                await _eventPublisher.PublishAsync(new DictDataChangedEvent { DictCode = dictType.DictCode });
+        }
+
+        return result;
     }
 }

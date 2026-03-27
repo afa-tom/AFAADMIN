@@ -1,3 +1,5 @@
+using System.IdentityModel.Tokens.Jwt;
+using AFAADMIN.Common.Cache;
 using AFAADMIN.Common.Config;
 using AFAADMIN.Common.Crypto;
 using AFAADMIN.Common.DependencyInjection;
@@ -18,18 +20,18 @@ public class AuthService : IAuthService, IScopedDependency
     private readonly IJwtService _jwtService;
     private readonly SecurityConfig _securityConfig;
     private readonly SensitiveFieldEncryptor _encryptor;
-
-    // 内存存储 RefreshToken（M4 阶段迁移至 Redis）
-    private static readonly Dictionary<string, (long UserId, DateTime Expiry)> _refreshTokens = new();
+    private readonly ICacheService _cache;
 
     public AuthService(IBaseRepository<SysUser> userRepo, ISqlSugarClient db,
-        IJwtService jwtService, SecurityConfig securityConfig, SensitiveFieldEncryptor encryptor)
+        IJwtService jwtService, SecurityConfig securityConfig,
+        SensitiveFieldEncryptor encryptor, ICacheService cache)
     {
         _userRepo = userRepo;
         _db = db;
         _jwtService = jwtService;
         _securityConfig = securityConfig;
         _encryptor = encryptor;
+        _cache = cache;
     }
 
     public async Task<LoginResultDto> LoginAsync(LoginDto dto)
@@ -41,24 +43,21 @@ public class AuthService : IAuthService, IScopedDependency
         if (user.Status != 1)
             throw new BusinessException("账号已被停用");
 
-        // SM3 密码校验
         if (!SM3Helper.Verify(dto.Password, user.Salt, user.Password))
             throw new BusinessException("用户名或密码错误");
 
-        // 获取角色编码
         var roles = await _db.Queryable<SysUserRole>()
             .LeftJoin<SysRole>((ur, r) => ur.RoleId == r.Id)
             .Where((ur, r) => ur.UserId == user.Id && r.Status == 1)
             .Select((ur, r) => r.RoleCode)
             .ToListAsync();
 
-        // 签发 Token
         var accessToken = _jwtService.GenerateAccessToken(user.Id, user.UserName, roles);
         var refreshToken = _jwtService.GenerateRefreshToken();
 
-        // 存储 RefreshToken
-        _refreshTokens[refreshToken] = (user.Id,
-            DateTime.UtcNow.AddDays(_securityConfig.Jwt.RefreshTokenExpireDays));
+        // RefreshToken 存入 Redis
+        var expiry = TimeSpan.FromDays(_securityConfig.Jwt.RefreshTokenExpireDays);
+        await _cache.SetAsync(CacheKeys.RefreshToken(refreshToken), user.Id, expiry);
 
         return new LoginResultDto
         {
@@ -70,19 +69,14 @@ public class AuthService : IAuthService, IScopedDependency
 
     public async Task<LoginResultDto> RefreshTokenAsync(string refreshToken)
     {
-        if (!_refreshTokens.TryGetValue(refreshToken, out var tokenInfo))
-            throw new BusinessException("RefreshToken 无效", 401);
-
-        if (tokenInfo.Expiry < DateTime.UtcNow)
-        {
-            _refreshTokens.Remove(refreshToken);
-            throw new BusinessException("RefreshToken 已过期", 401);
-        }
+        var userId = await _cache.GetAsync<long>(CacheKeys.RefreshToken(refreshToken));
+        if (userId == 0)
+            throw new BusinessException("RefreshToken 无效或已过期", 401);
 
         // 移除旧 Token
-        _refreshTokens.Remove(refreshToken);
+        await _cache.RemoveAsync(CacheKeys.RefreshToken(refreshToken));
 
-        var user = await _userRepo.GetByIdAsync(tokenInfo.UserId);
+        var user = await _userRepo.GetByIdAsync(userId);
         if (user == null || user.Status != 1)
             throw new BusinessException("账号异常", 401);
 
@@ -95,8 +89,8 @@ public class AuthService : IAuthService, IScopedDependency
         var newAccessToken = _jwtService.GenerateAccessToken(user.Id, user.UserName, roles);
         var newRefreshToken = _jwtService.GenerateRefreshToken();
 
-        _refreshTokens[newRefreshToken] = (user.Id,
-            DateTime.UtcNow.AddDays(_securityConfig.Jwt.RefreshTokenExpireDays));
+        var expiry = TimeSpan.FromDays(_securityConfig.Jwt.RefreshTokenExpireDays);
+        await _cache.SetAsync(CacheKeys.RefreshToken(newRefreshToken), user.Id, expiry);
 
         return new LoginResultDto
         {
@@ -106,34 +100,62 @@ public class AuthService : IAuthService, IScopedDependency
         };
     }
 
+    /// <summary>
+    /// 登出 — 将 AccessToken 加入黑名单
+    /// </summary>
+    public async Task LogoutAsync(string accessToken)
+    {
+        try
+        {
+            var handler = new JwtSecurityTokenHandler();
+            if (handler.CanReadToken(accessToken))
+            {
+                var jwt = handler.ReadJwtToken(accessToken);
+                var jti = jwt.Id;
+                var expiry = jwt.ValidTo - DateTime.UtcNow;
+                if (!string.IsNullOrEmpty(jti) && expiry > TimeSpan.Zero)
+                {
+                    await _cache.SetStringAsync(CacheKeys.TokenBlacklist(jti), "1", expiry);
+                }
+            }
+        }
+        catch { /* Token 解析失败不影响登出 */ }
+    }
+
     public async Task<CurrentUserDto> GetCurrentUserAsync(long userId)
     {
         var user = await _userRepo.GetByIdAsync(userId);
         if (user == null) throw new BusinessException("用户不存在");
 
-        // 角色编码
-        var roles = await _db.Queryable<SysUserRole>()
-            .LeftJoin<SysRole>((ur, r) => ur.RoleId == r.Id)
-            .Where((ur, r) => ur.UserId == userId && r.Status == 1)
-            .Select((ur, r) => r.RoleCode)
-            .ToListAsync();
+        // 角色编码（带缓存）
+        var roles = await _cache.GetOrSetAsync(
+            CacheKeys.UserRoles(userId),
+            async () => await _db.Queryable<SysUserRole>()
+                .LeftJoin<SysRole>((ur, r) => ur.RoleId == r.Id)
+                .Where((ur, r) => ur.UserId == userId && r.Status == 1)
+                .Select((ur, r) => r.RoleCode)
+                .ToListAsync(),
+            TimeSpan.FromMinutes(30));
 
-        // 权限标识
+        // 权限标识（带缓存）
         List<string> permissions;
-        if (roles.Contains("admin"))
+        if (roles != null && roles.Contains("admin"))
         {
-            permissions = ["*:*:*"]; // 超管拥有全部权限
+            permissions = ["*:*:*"];
         }
         else
         {
-            permissions = await _db.Queryable<SysUserRole>()
-                .LeftJoin<SysRoleMenu>((ur, rm) => ur.RoleId == rm.RoleId)
-                .LeftJoin<SysMenu>((ur, rm, m) => rm.MenuId == m.Id)
-                .Where((ur, rm, m) => ur.UserId == userId
-                    && m.Status == 1 && m.Permission != null && m.Permission != "")
-                .Select((ur, rm, m) => m.Permission!)
-                .Distinct()
-                .ToListAsync();
+            permissions = await _cache.GetOrSetAsync(
+                CacheKeys.UserPermissions(userId),
+                async () => await _db.Queryable<SysUserRole>()
+                    .LeftJoin<SysRoleMenu>((ur, rm) => ur.RoleId == rm.RoleId)
+                    .LeftJoin<SysMenu>((ur, rm, m) => rm.MenuId == m.Id)
+                    .Where((ur, rm, m) => ur.UserId == userId
+                        && m.Status == 1 && m.Permission != null && m.Permission != "")
+                    .Select((ur, rm, m) => m.Permission!)
+                    .Distinct()
+                    .ToListAsync(),
+                TimeSpan.FromMinutes(30)) ?? [];
         }
 
         return new CurrentUserDto
@@ -142,7 +164,7 @@ public class AuthService : IAuthService, IScopedDependency
             UserName = user.UserName,
             NickName = user.NickName,
             Avatar = user.Avatar,
-            Roles = roles,
+            Roles = roles ?? [],
             Permissions = permissions
         };
     }

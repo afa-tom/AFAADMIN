@@ -1,9 +1,14 @@
+using AFAADMIN.Common.IdGen;
 using AFAADMIN.Database;
+using AFAADMIN.EventBus;
+using AFAADMIN.Storage;
 using AFAADMIN.System.Application;
 using AFAADMIN.System.Infrastructure;
+using AFAADMIN.Tools;
 using AFAADMIN.Web.Core.Authentication;
 using AFAADMIN.Web.Core.Extensions;
 using AFAADMIN.Web.Core.Filters;
+using AFAADMIN.Web.Core.Middlewares;
 using Serilog;
 
 // ========== 1. 构建 Host ==========
@@ -22,18 +27,15 @@ builder.Services.AddControllers(options =>
 {
     options.Filters.Add<GlobalExceptionFilter>();
     options.Filters.Add<ApiResultWrapperFilter>();
-    options.Filters.Add<PermissionFilter>();       // M3: 权限校验
-    options.Filters.Add<ValidationFilter>();        // M3: 参数校验
+    options.Filters.Add<PermissionFilter>();
+    options.Filters.Add<ValidationFilter>();
 })
 .AddJsonOptions(options =>
 {
-    // 中文不转义
     options.JsonSerializerOptions.Encoder =
         System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping;
-    // 驼峰命名
     options.JsonSerializerOptions.PropertyNamingPolicy =
         System.Text.Json.JsonNamingPolicy.CamelCase;
-    // 时间格式
     options.JsonSerializerOptions.Converters.Add(
         new AFAADMIN.WebApi.Converters.DateTimeJsonConverter());
 });
@@ -58,13 +60,13 @@ builder.Services.AddCors(options =>
 // 2.5 健康检查
 builder.Services.AddHealthChecks();
 
-// 2.6 数据库（M2 新增）
+// 2.6 数据库（M2）
 builder.Services.AddAfaDatabase(builder.Configuration);
 
-// 2.7 安全配置（M2 新增）
+// 2.7 安全配置（M2）
 builder.Services.AddAfaSecurity(builder.Configuration);
 
-// 2.8 防抖限流（M2 新增）
+// 2.8 防抖限流（M2）
 builder.Services.AddAfaRateLimiting(builder.Configuration);
 
 // 2.9 JWT 认证 + 授权（M3）
@@ -72,6 +74,21 @@ builder.Services.AddAfaJwtAuth(builder.Configuration);
 
 // 2.10 System 模块 Application 层（M3）
 builder.Services.AddSystemApplication();
+
+// 2.11 Redis 缓存（M4）
+builder.Services.AddAfaRedis(builder.Configuration);
+
+// 2.12 文件存储引擎（M4）
+builder.Services.AddAfaStorage(builder.Configuration);
+
+// 2.13 事件总线 MediatR（M4）
+builder.Services.AddAfaEventBus();
+
+// 2.14 工具链（M4）
+builder.Services.AddAfaTools();
+
+// 2.15 雪花 ID 初始化（M4）
+IdHelper.Init(datacenterId: 1, workerId: 1);
 
 // ========== 3. 构建并配置中间件管道 ==========
 var app = builder.Build();
@@ -101,17 +118,29 @@ app.UseRouting();
 // 3.3 请求日志
 app.UseSerilogRequestLogging();
 
-// 3.4 API 报文加解密中间件（M2 新增）
+// 3.4 API 报文加解密中间件（M2）
 app.UseAfaEncryption();
 
-// 3.5 防抖限流（M2 新增）
+// 3.5 防抖限流（M2）
 app.UseAfaRateLimiting(builder.Configuration);
 
-// 3.6 认证 & 授权（M3 启用）
+// 3.6 认证 & 授权（M3）
 app.UseAuthentication();
 app.UseAuthorization();
 
-// 3.7 路由映射
+// 3.7 Token 黑名单中间件（M4，放在认证之后）
+app.UseMiddleware<TokenBlacklistMiddleware>();
+
+// 3.8 本地文件静态访问（M4）
+var storagePath = Path.Combine(AppContext.BaseDirectory, "uploads");
+if (!Directory.Exists(storagePath)) Directory.CreateDirectory(storagePath);
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(storagePath),
+    RequestPath = "/files"
+});
+
+// 3.9 路由映射
 app.MapControllers();
 app.MapHealthChecks("/health");
 

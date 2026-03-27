@@ -15,7 +15,10 @@ services:
       - TZ=Asia/Shanghai
     volumes:
       - ./logs:/app/logs
+      - ./uploads:/app/uploads
       - ./src/Host/AFAADMIN.WebApi/configs:/app/configs:ro
+    depends_on:
+      - afaadmin-redis
     networks:
       - afaadmin-net
     healthcheck:
@@ -23,6 +26,19 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+
+  # ===== Redis 缓存 =====
+  afaadmin-redis:
+    image: redis:7-alpine
+    container_name: afaadmin-redis
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    networks:
+      - afaadmin-net
 
   # ===== Nginx 反向代理 =====
   afaadmin-nginx:
@@ -35,12 +51,13 @@ services:
     volumes:
       - ./deploy/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./deploy/nginx/conf.d:/etc/nginx/conf.d:ro
-      # 前端静态资源（M5 阶段挂载构建产物）
-      # - ./src/Frontend/afaadmin-web/dist:/usr/share/nginx/html:ro
     depends_on:
       - afaadmin-api
     networks:
       - afaadmin-net
+
+volumes:
+  redis-data:
 
 networks:
   afaadmin-net:

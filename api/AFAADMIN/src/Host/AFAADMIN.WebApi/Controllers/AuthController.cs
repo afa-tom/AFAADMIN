@@ -60,13 +60,18 @@ public class AuthController : ApiControllerBase
     }
 
     /// <summary>
-    /// 登出（M4 阶段迁移至 Redis 黑名单）
+    /// 登出（Token 加入黑名单）
     /// </summary>
     [HttpPost("logout")]
     [Authorize]
-    public IActionResult Logout()
+    public async Task<IActionResult> Logout()
     {
-        // M4 阶段加入 Token 黑名单
+        var authHeader = HttpContext.Request.Headers.Authorization.FirstOrDefault();
+        if (!string.IsNullOrEmpty(authHeader) && authHeader.StartsWith("Bearer "))
+        {
+            var token = authHeader["Bearer ".Length..].Trim();
+            await _authService.LogoutAsync(token);
+        }
         return Ok(ApiResult.Success("已登出"));
     }
 }

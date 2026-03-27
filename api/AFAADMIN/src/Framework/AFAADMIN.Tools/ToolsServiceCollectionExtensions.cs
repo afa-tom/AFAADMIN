@@ -1,9 +1,30 @@
+using Lazy.Captcha.Core;
+using Lazy.Captcha.Core.Generator;
+using Microsoft.Extensions.DependencyInjection;
+
 namespace AFAADMIN.Tools;
 
-/// <summary>
-/// 工具链模块（M4 阶段实现 ImageSharp、验证码等）
-/// </summary>
 public static class ToolsServiceCollectionExtensions
 {
-    // M4 阶段实现
+    /// <summary>
+    /// 注册工具链服务
+    /// </summary>
+    public static IServiceCollection AddAfaTools(this IServiceCollection services)
+    {
+        // 验证码
+        services.AddCaptcha(options =>
+        {
+            options.CaptchaType = CaptchaType.ARITHMETIC;
+            options.CodeLength = 2;
+            options.ExpirySeconds = 120;
+            options.ImageOption = new CaptchaImageGeneratorOption
+            {
+                Width = 150,
+                Height = 50,
+                FontSize = 28
+            };
+        });
+
+        return services;
+    }
 }
