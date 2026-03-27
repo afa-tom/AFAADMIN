@@ -1,0 +1,55 @@
+appId: com.afaadmin.desktop
+productName: AFAADMIN
+copyright: Copyright © 2024 AFAADMIN
+directories:
+  buildResources: build
+  output: release
+
+files:
+  - dist/**/*
+  - "!node_modules/**/*"
+
+extraResources:
+  - from: resources/
+    to: resources/
+    filter:
+      - "**/*"
+
+win:
+  target:
+    - target: nsis
+      arch: [x64]
+    - target: portable
+      arch: [x64]
+  icon: resources/icon.ico
+  artifactName: ${productName}-${version}-Setup.${ext}
+
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: AFAADMIN
+
+mac:
+  target:
+    - target: dmg
+      arch: [universal]
+  icon: resources/icon.icns
+  category: public.app-category.business
+  artifactName: ${productName}-${version}.${ext}
+
+linux:
+  target:
+    - target: AppImage
+      arch: [x64]
+    - target: deb
+      arch: [x64]
+  icon: resources/
+  category: Office
+  artifactName: ${productName}-${version}.${ext}
+
+publish:
+  - provider: generic
+    url: https://releases.your-domain.com/desktop/
+    channel: latest
