@@ -1,0 +1,49 @@
+{
+  "name": "AFAADMIN",
+  "appid": "__UNI__AFAADMIN",
+  "description": "AFAADMIN 移动端管理",
+  "versionName": "1.0.0",
+  "versionCode": "100",
+  "transformPx": false,
+  "app-plus": {
+    "usingComponents": true,
+    "nvueStyleCompiler": "uni-app",
+    "compilerVersion": 3,
+    "splashscreen": {
+      "alwaysShowBeforeRender": true,
+      "autoclose": true,
+      "waiting": true
+    },
+    "modules": {},
+    "distribute": {
+      "android": {
+        "permissions": [
+          "<uses-permission android:name=\"android.permission.INTERNET\"/>",
+          "<uses-permission android:name=\"android.permission.CAMERA\"/>",
+          "<uses-permission android:name=\"android.permission.VIBRATE\"/>"
+        ]
+      },
+      "ios": {}
+    }
+  },
+  "mp-weixin": {
+    "appid": "",
+    "setting": {
+      "urlCheck": false
+    },
+    "usingComponents": true
+  },
+  "h5": {
+    "devServer": {
+      "proxy": {
+        "/api": {
+          "target": "http://localhost:5000",
+          "changeOrigin": true
+        }
+      }
+    },
+    "router": {
+      "mode": "hash"
+    }
+  }
+}

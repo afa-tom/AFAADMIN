@@ -1,0 +1,87 @@
+{
+  "pages": [
+    {
+      "path": "pages/login/index",
+      "style": {
+        "navigationBarTitleText": "登录",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/workbench/index",
+      "style": {
+        "navigationBarTitleText": "工作台",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/user/index",
+      "style": {
+        "navigationBarTitleText": "用户管理"
+      }
+    },
+    {
+      "path": "pages/user/detail",
+      "style": {
+        "navigationBarTitleText": "用户详情"
+      }
+    },
+    {
+      "path": "pages/role/index",
+      "style": {
+        "navigationBarTitleText": "角色管理"
+      }
+    },
+    {
+      "path": "pages/dept/index",
+      "style": {
+        "navigationBarTitleText": "部门管理"
+      }
+    },
+    {
+      "path": "pages/dict/index",
+      "style": {
+        "navigationBarTitleText": "字典管理"
+      }
+    },
+    {
+      "path": "pages/profile/index",
+      "style": {
+        "navigationBarTitleText": "个人中心",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/profile/password",
+      "style": {
+        "navigationBarTitleText": "修改密码"
+      }
+    }
+  ],
+  "globalStyle": {
+    "navigationBarTextStyle": "black",
+    "navigationBarTitleText": "AFAADMIN",
+    "navigationBarBackgroundColor": "#FFFFFF",
+    "backgroundColor": "#F5F6F7"
+  },
+  "tabBar": {
+    "color": "#999999",
+    "selectedColor": "#165DFF",
+    "borderStyle": "black",
+    "backgroundColor": "#FFFFFF",
+    "list": [
+      {
+        "pagePath": "pages/workbench/index",
+        "text": "工作台",
+        "iconPath": "static/tab-home.png",
+        "selectedIconPath": "static/tab-home-active.png"
+      },
+      {
+        "pagePath": "pages/profile/index",
+        "text": "我的",
+        "iconPath": "static/tab-user.png",
+        "selectedIconPath": "static/tab-user-active.png"
+      }
+    ]
+  }
+}
