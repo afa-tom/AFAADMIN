@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>AFAADMIN.System.Application</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Mapster" Version="7.4.0" />
+    <PackageReference Include="FluentValidation" Version="11.10.0" />
+    <PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="11.10.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\AFAADMIN.System.Domain\AFAADMIN.System.Domain.csproj" />
+    <ProjectReference Include="..\..\..\Framework\AFAADMIN.Database\AFAADMIN.Database.csproj" />
+    <ProjectReference Include="..\..\..\Framework\AFAADMIN.Common\AFAADMIN.Common.csproj" />
+    <ProjectReference Include="..\..\..\Framework\AFAADMIN.Web.Core\AFAADMIN.Web.Core.csproj" />
+  </ItemGroup>
+</Project>

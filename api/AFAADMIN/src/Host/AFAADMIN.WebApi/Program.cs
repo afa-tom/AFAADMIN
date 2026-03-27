@@ -1,4 +1,7 @@
 using AFAADMIN.Database;
+using AFAADMIN.System.Application;
+using AFAADMIN.System.Infrastructure;
+using AFAADMIN.Web.Core.Authentication;
 using AFAADMIN.Web.Core.Extensions;
 using AFAADMIN.Web.Core.Filters;
 using Serilog;
@@ -19,6 +22,8 @@ builder.Services.AddControllers(options =>
 {
     options.Filters.Add<GlobalExceptionFilter>();
     options.Filters.Add<ApiResultWrapperFilter>();
+    options.Filters.Add<PermissionFilter>();       // M3: 权限校验
+    options.Filters.Add<ValidationFilter>();        // M3: 参数校验
 })
 .AddJsonOptions(options =>
 {
@@ -62,13 +67,20 @@ builder.Services.AddAfaSecurity(builder.Configuration);
 // 2.8 防抖限流（M2 新增）
 builder.Services.AddAfaRateLimiting(builder.Configuration);
 
+// 2.9 JWT 认证 + 授权（M3）
+builder.Services.AddAfaJwtAuth(builder.Configuration);
+
+// 2.10 System 模块 Application 层（M3）
+builder.Services.AddSystemApplication();
+
 // ========== 3. 构建并配置中间件管道 ==========
 var app = builder.Build();
 
-// 3.0 数据库初始化（开发环境自动建表）
+// 3.0 数据库初始化 + 种子数据（开发环境）
 if (app.Environment.IsDevelopment())
 {
     app.Services.InitDatabase(createTable: true);
+    app.Services.InitSystemModule();
 }
 
 // 3.1 开发环境启用 Swagger
@@ -95,9 +107,9 @@ app.UseAfaEncryption();
 // 3.5 防抖限流（M2 新增）
 app.UseAfaRateLimiting(builder.Configuration);
 
-// 3.6 认证 & 授权（M3 阶段启用）
-// app.UseAuthentication();
-// app.UseAuthorization();
+// 3.6 认证 & 授权（M3 启用）
+app.UseAuthentication();
+app.UseAuthorization();
 
 // 3.7 路由映射
 app.MapControllers();

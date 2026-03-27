@@ -11,6 +11,12 @@ namespace AFAADMIN.System.Domain.Entities;
 public class SysUser : BaseEntity
 {
     /// <summary>
+    /// 所属部门 ID
+    /// </summary>
+    [SugarColumn(ColumnDescription = "部门ID", IsNullable = true)]
+    public long? DeptId { get; set; }
+
+    /// <summary>
     /// 用户名（登录账号）
     /// </summary>
     [SugarColumn(Length = 64, IsNullable = false, ColumnDescription = "用户名")]
