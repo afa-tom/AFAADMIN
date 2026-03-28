@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using AFAADMIN.Common.Models;
 using AFAADMIN.Web.Core.Attributes;
+using AFAADMIN.Web.Core.Authentication;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.Extensions.DependencyInjection;

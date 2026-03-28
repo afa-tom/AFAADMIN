@@ -1,5 +1,6 @@
 using Lazy.Captcha.Core;
 using Lazy.Captcha.Core.Generator;
+using Lazy.Captcha.Core.Generator.Image.Option;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace AFAADMIN.Tools;
