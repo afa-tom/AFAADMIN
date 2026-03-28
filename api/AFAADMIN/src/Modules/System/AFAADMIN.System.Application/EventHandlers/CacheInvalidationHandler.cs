@@ -1,7 +1,8 @@
-using AFAADMIN.Common.Cache;
 using AFAADMIN.System.Domain.Events;
 using MediatR;
 using Microsoft.Extensions.Logging;
+using ICacheService = AFAADMIN.Common.Cache.ICacheService;
+using CacheKeys = AFAADMIN.Common.Cache.CacheKeys;
 
 namespace AFAADMIN.System.Application.EventHandlers;
 

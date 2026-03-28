@@ -1,4 +1,3 @@
-using AFAADMIN.Common.Cache;
 using AFAADMIN.Common.DependencyInjection;
 using AFAADMIN.Common.Exceptions;
 using AFAADMIN.Database.Repositories;
@@ -9,6 +8,7 @@ using AFAADMIN.System.Domain.Events;
 using Mapster;
 using SqlSugar;
 using ICacheService = AFAADMIN.Common.Cache.ICacheService;
+using CacheKeys = AFAADMIN.Common.Cache.CacheKeys;
 
 namespace AFAADMIN.System.Application.Services.Impl;
 

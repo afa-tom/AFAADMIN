@@ -1,9 +1,9 @@
-using AFAADMIN.Common.Cache;
 using AFAADMIN.Common.DependencyInjection;
 using AFAADMIN.System.Domain.Entities;
 using AFAADMIN.Web.Core.Authentication;
 using SqlSugar;
 using ICacheService = AFAADMIN.Common.Cache.ICacheService;
+using CacheKeys = AFAADMIN.Common.Cache.CacheKeys;
 
 namespace AFAADMIN.System.Application.Services.Impl;
 
