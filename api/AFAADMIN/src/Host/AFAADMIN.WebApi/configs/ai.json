@@ -1,0 +1,14 @@
+{
+  "AI": {
+    "Enabled": true,
+    "Provider": "OpenAI",
+    "ModelId": "gpt-4o-mini",
+    "ApiKey": "sk-your-api-key-here",
+    "Endpoint": "",
+    "SystemPrompt": "你是 AFAADMIN 系统的 AI 管理助手。你可以帮助用户查询系统信息（用户数、角色列表、部门结构等）。请用简洁的中文回答。当用户询问系统数据时，请调用可用的函数来获取实时数据。",
+    "MaxHistoryMessages": 20,
+    "SessionExpireMinutes": 60,
+    "MaxTokens": 2048,
+    "Temperature": 0.7
+  }
+}

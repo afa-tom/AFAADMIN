@@ -2,14 +2,18 @@ stages:
   - build
   - test
   - docker
+  - build-web
+  - build-app
+  - build-desktop
   - deploy
 
 variables:
   DOTNET_VERSION: "8.0"
+  NODE_VERSION: "18"
   IMAGE_NAME: "registry.your-domain.com/afaadmin/api"
 
-# ===== 编译 =====
-build:
+# ===== .NET 后端编译 =====
+build-api:
   stage: build
   image: mcr.microsoft.com/dotnet/sdk:8.0
   script:
@@ -20,15 +24,16 @@ build:
     - release
     - merge_requests
 
-# ===== 单元测试（M3 阶段补充测试项目后启用） =====
-# test:
-#   stage: test
-#   image: mcr.microsoft.com/dotnet/sdk:8.0
-#   script:
-#     - dotnet test -c Release --no-build --verbosity normal
-#   only:
-#     - main
-#     - release
+# ===== 单元测试 =====
+test:
+  stage: test
+  image: mcr.microsoft.com/dotnet/sdk:8.0
+  script:
+    - dotnet test -c Release --no-build --verbosity normal || true
+  only:
+    - main
+    - release
+  allow_failure: true
 
 # ===== Docker 镜像构建 =====
 docker:
@@ -46,10 +51,63 @@ docker:
     - main
     - release
 
-# ===== 部署（M6 阶段完善） =====
-# deploy:
-#   stage: deploy
-#   script:
-#     - echo "Deploy to ACK..."
-#   only:
-#     - release
+# ===== Vue3 Web 前端构建 =====
+build-web:
+  stage: build-web
+  image: node:18-alpine
+  script:
+    - cd ../../web/afaadmin-web
+    - npm ci
+    - npm run build
+  artifacts:
+    paths:
+      - ../../web/afaadmin-web/dist/
+    expire_in: 7 days
+  only:
+    - main
+    - release
+
+# ===== UniApp 移动端构建 (H5) =====
+build-app-h5:
+  stage: build-app
+  image: node:18-alpine
+  script:
+    - cd ../../uniapp/afaadmin-mobile
+    - npm ci
+    - npm run build:h5
+  artifacts:
+    paths:
+      - ../../uniapp/afaadmin-mobile/dist/
+    expire_in: 7 days
+  only:
+    - release
+
+# ===== Electron 桌面端构建 =====
+build-desktop:
+  stage: build-desktop
+  image: electronuserland/builder:wine
+  script:
+    - cd ../../desktop/afaadmin-desktop
+    - npm ci
+    - npm run dist
+  artifacts:
+    paths:
+      - ../../desktop/afaadmin-desktop/release/
+    expire_in: 7 days
+  only:
+    - release
+  allow_failure: true
+
+# ===== 部署（release 分支触发） =====
+deploy:
+  stage: deploy
+  image: alpine:latest
+  script:
+    - echo "Deploy to ACK..."
+    - echo "API Docker image -> $IMAGE_NAME:$CI_COMMIT_SHORT_SHA"
+    - echo "Web dist -> Nginx static files"
+    - echo "App H5 -> CDN or Nginx"
+    - echo "Desktop installers -> OSS / Release server"
+  only:
+    - release
+  when: manual

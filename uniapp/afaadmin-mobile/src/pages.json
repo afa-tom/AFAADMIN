@@ -56,6 +56,13 @@
       "style": {
         "navigationBarTitleText": "修改密码"
       }
+    },
+    {
+      "path": "pages/ai/index",
+      "style": {
+        "navigationBarTitleText": "AI 助手",
+        "navigationStyle": "custom"
+      }
     }
   ],
   "globalStyle": {

@@ -1,3 +1,4 @@
+using AFAADMIN.AI;
 using AFAADMIN.Common.IdGen;
 using AFAADMIN.Database;
 using AFAADMIN.EventBus;
@@ -87,7 +88,10 @@ builder.Services.AddAfaEventBus();
 // 2.14 工具链（M4）
 builder.Services.AddAfaTools();
 
-// 2.15 雪花 ID 初始化（M4）
+// 2.15 AI Copilot（M8）
+builder.Services.AddAfaAI(builder.Configuration);
+
+// 2.16 雪花 ID 初始化（M4）
 IdHelper.Init(datacenterId: 1, workerId: 1);
 
 // ========== 3. 构建并配置中间件管道 ==========

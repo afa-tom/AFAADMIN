@@ -32,6 +32,9 @@
         </router-view>
       </a-layout-content>
     </a-layout>
+
+    <!-- AI 助手（M8） -->
+    <AIAssistant />
   </a-layout>
 </template>
 
@@ -40,6 +43,7 @@ import { useAppStore } from '@/store'
 import Sidebar from './components/Sidebar.vue'
 import Topbar from './components/Topbar.vue'
 import TabsView from './components/TabsView.vue'
+import AIAssistant from './components/AIAssistant.vue'
 
 const appStore = useAppStore()
 </script>
