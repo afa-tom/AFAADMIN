@@ -1,0 +1,12 @@
+﻿{
+  "CaptchaOptions": {
+    "CaptchaType": 5,
+    "CodeLength": 2,
+    "ExpirySeconds": 120,
+    "ImageOption": {
+      "Width": 150,
+      "Height": 50,
+      "FontSize": 28
+    }
+  }
+}

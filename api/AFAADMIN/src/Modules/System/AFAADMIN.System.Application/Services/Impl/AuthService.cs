@@ -10,6 +10,7 @@ using AFAADMIN.System.Application.Dtos;
 using AFAADMIN.System.Domain.Entities;
 using AFAADMIN.Web.Core.Authentication;
 using SqlSugar;
+using ICacheService = AFAADMIN.Common.Cache.ICacheService;
 
 namespace AFAADMIN.System.Application.Services.Impl;
 

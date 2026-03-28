@@ -4,6 +4,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <RootNamespace>AFAADMIN.AI</RootNamespace>
+    <NoWarn>SKEXP0001;SKEXP0010;SKEXP0050;SKEXP0070</NoWarn>
   </PropertyGroup>
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />

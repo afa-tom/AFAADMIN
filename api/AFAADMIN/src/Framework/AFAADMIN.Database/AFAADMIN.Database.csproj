@@ -6,9 +6,6 @@
     <RootNamespace>AFAADMIN.Database</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="SqlSugarCore" Version="5.1.4.169" />
-  </ItemGroup>
-  <ItemGroup>
     <ProjectReference Include="..\AFAADMIN.Common\AFAADMIN.Common.csproj" />
   </ItemGroup>
 </Project>

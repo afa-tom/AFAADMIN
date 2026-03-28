@@ -1,4 +1,5 @@
 using AFAADMIN.Common.Config;
+using AfaMinioConfig = AFAADMIN.Common.Config.MinioConfig;
 using Microsoft.Extensions.Logging;
 using Minio;
 using Minio.DataModel.Args;
@@ -11,7 +12,7 @@ namespace AFAADMIN.Storage.Providers;
 public class MinioStorageProvider : IStorageProvider
 {
     private readonly IMinioClient _client;
-    private readonly MinioConfig _config;
+    private readonly AfaMinioConfig _config;
     private readonly ILogger<MinioStorageProvider> _logger;
 
     public MinioStorageProvider(StorageConfig storageConfig, ILogger<MinioStorageProvider> logger)

@@ -86,7 +86,7 @@ builder.Services.AddAfaStorage(builder.Configuration);
 builder.Services.AddAfaEventBus();
 
 // 2.14 工具链（M4）
-builder.Services.AddAfaTools();
+builder.Services.AddAfaTools(builder.Configuration);
 
 // 2.15 AI Copilot（M8）
 builder.Services.AddAfaAI(builder.Configuration);

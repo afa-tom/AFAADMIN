@@ -8,6 +8,7 @@ using AFAADMIN.System.Domain.Entities;
 using AFAADMIN.System.Domain.Events;
 using Mapster;
 using SqlSugar;
+using ICacheService = AFAADMIN.Common.Cache.ICacheService;
 
 namespace AFAADMIN.System.Application.Services.Impl;
 

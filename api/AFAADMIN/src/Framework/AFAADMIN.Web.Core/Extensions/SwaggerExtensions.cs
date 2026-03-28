@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.OpenApi;
 using Microsoft.OpenApi.Models;
 
 namespace AFAADMIN.Web.Core.Extensions;
